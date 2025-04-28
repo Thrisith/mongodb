@@ -3,12 +3,19 @@ const app = express();
 const exhbs = require("express-handlebars");
 const bodyparser = require("body-parser");
 const dbo = require("./db");
+const BookModel = require("./models/bookModel");
+
+dbo.getDatabase();
 app.engine(
   "hbs",
   exhbs.engine({
     layoutsDir: "C:/Users/tthri/OneDrive/Desktop/MongoDb/MongoFirst/views",
     defaultLayout: "main",
     extname: "hbs",
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+      allowProtoMethodsByDefault: true,
+    },
   })
 );
 app.set("view engine", "hbs");
@@ -17,22 +24,26 @@ app.use(bodyparser.urlencoded({ extended: true }));
 
 app.get("/", async (req, res) => {
   let message = "MongoDB CRUD Operations";
-  let database = await dbo.getDatabase();
-  const collection = database.collection("books");
-  const cursor = collection.find({});
-  let bookDetails = await cursor.toArray();
+  // let database = await dbo.getDatabase();
+  // const collection = database.collection("books");
+  // const cursor = collection.find({});
+  // let bookDetails = await cursor.toArray();
+  let bookDetails = await BookModel.find({});
+
   let edit_id, edit_book;
   if (req.query.edit_id) {
     edit_id = req.query.edit_id;
-    edit_book = await collection.findOne({
-      _id: new dbo.ObjectId(edit_id),
-    });
+    // edit_book = await collection.findOne({
+    //   _id: new dbo.ObjectId(edit_id),
+    // });
+    edit_book = await BookModel.findOne({ _id: edit_id });
   }
   if (req.query.delete_id) {
     let delete_id = req.query.delete_id;
-    await collection.deleteOne({
-      _id: new dbo.ObjectId(delete_id),
-    });
+    // await collection.deleteOne({
+    //   _id: new dbo.ObjectId(delete_id),
+    // });
+    await BookModel.deleteOne({ _id: delete_id });
     return res.redirect("/?status=3");
   }
   let operation = "";
@@ -56,22 +67,31 @@ app.get("/", async (req, res) => {
 });
 
 app.post("/store_book", async (req, res) => {
-  const database = await dbo.getDatabase();
-  const collection = database.collection("books");
-  let book = { title: req.body.title, author: req.body.author };
-  await collection.insertOne(book);
+  // const database = await dbo.getDatabase();
+  // const collection = database.collection("books");
+  // let book = { title: req.body.title, author: req.body.author };
+  // await collection.insertOne(book);
+  const book = new BookModel({
+    title: req.body.title,
+    author: req.body.author,
+  });
+  book.save();
   return res.redirect("/?status=1");
 });
 
 app.post("/update_book/:edit_id", async (req, res) => {
-  const database = await dbo.getDatabase();
-  const collection = database.collection("books");
-  let book = { title: req.body.title, author: req.body.author };
+  // const database = await dbo.getDatabase();
+  // const collection = database.collection("books");
+  // let book = { title: req.body.title, author: req.body.author };
   let edit_id = req.params.edit_id;
-  await collection.updateOne(
-    { _id: new dbo.ObjectId(edit_id) },
-    { $set: book }
+  await BookModel.findOneAndUpdate(
+    { _id: edit_id },
+    { title: req.body.title, author: req.body.author }
   );
+  // await collection.updateOne(
+  //   { _id: new dbo.ObjectId(edit_id) },
+  //   { $set: book }
+  // );
   return res.redirect("/?status=2");
 });
 
